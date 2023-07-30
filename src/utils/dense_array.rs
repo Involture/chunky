@@ -2,7 +2,7 @@ use crate::blocs::CHUNK_S3;
 const U4_IN_USIZE: usize = usize::BITS as usize/4;
 const PARITY_MASK: usize = U4_IN_USIZE - 1;
 pub trait PackedData {
-    fn max(&self) -> usize;
+    fn mask(&self) -> usize;
 
     fn get(&self, i: usize) -> usize;
 
@@ -13,8 +13,8 @@ pub struct ArrU4([usize; CHUNK_S3/U4_IN_USIZE]);
 
 
 impl PackedData for ArrU4 {
-    fn max(&self) -> usize {
-        1 << 4
+    fn mask(&self) -> usize {
+        0b1111
     }
 
     #[inline(always)]
@@ -35,7 +35,7 @@ impl PackedData for ArrU4 {
 }
 
 impl PackedData for [u8; CHUNK_S3] {
-    fn max(&self) -> usize {
+    fn mask(&self) -> usize {
         u8::MAX as usize
     }
 
@@ -49,7 +49,7 @@ impl PackedData for [u8; CHUNK_S3] {
 }
 
 impl PackedData for [u16; CHUNK_S3] {
-    fn max(&self) -> usize {
+    fn mask(&self) -> usize {
         u16::MAX as usize
     }
 
@@ -63,7 +63,7 @@ impl PackedData for [u16; CHUNK_S3] {
 }
 
 impl PackedData for [u32; CHUNK_S3] {
-    fn max(&self) -> usize {
+    fn mask(&self) -> usize {
         u32::MAX as usize
     }
 
@@ -77,12 +77,16 @@ impl PackedData for [u32; CHUNK_S3] {
 }
 
 pub struct DenseArray {
-    pub data: Box<dyn PackedData>
+    pub data: Box<dyn PackedData>,
+    pub mask: usize
 }
 
 impl DenseArray {
     pub fn new() -> Self {
-        DenseArray { data: Box::new(ArrU4([0; CHUNK_S3/U4_IN_USIZE])) }
+        DenseArray { 
+            data: Box::new(ArrU4([0; CHUNK_S3/U4_IN_USIZE])),
+            mask: 0b1111
+        }
     }
 
     pub fn from(values: &[usize]) -> Self {
@@ -93,12 +97,14 @@ impl DenseArray {
         res
     }
 
+    #[inline]
     pub fn get(&self, i: usize) -> usize {
         self.data.get(i)
     }
 
+    #[inline]
     pub fn set(&mut self, i: usize, value: usize) {
-        if value >= self.data.max() {
+        if value & self.mask != value {
             let bits = value.ilog2();
             self.data = if bits < 8 {
                 Box::<[u8; CHUNK_S3]>::new(core::array::from_fn(|i| self.data.get(i) as u8))
@@ -108,6 +114,7 @@ impl DenseArray {
                 Box::<[u32; CHUNK_S3]>::new(core::array::from_fn(|i| self.data.get(i) as u32))
             };
         }
+        self.mask = self.data.mask();
         self.data.set(i, value)
     }
 }
