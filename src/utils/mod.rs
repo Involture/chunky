@@ -1,7 +1,9 @@
-mod get_set;
+mod better_dense_array;
 mod dense_array;
+mod get_set;
 mod packed_ints;
 mod palette;
+pub use better_dense_array::*;
 pub use dense_array::*;
 pub use get_set::*;
 pub use packed_ints::*;
