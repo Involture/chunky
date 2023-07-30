@@ -19,3 +19,11 @@ rand = "*"
 [[bench]]
 name = "packed_ints"
 harness = false
+
+[[bench]]
+name = "dense_array"
+harness = false
+
+[[bench]]
+name = "control_vec"
+harness = false
