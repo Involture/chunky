@@ -4,15 +4,15 @@ use chunky::CHUNK_S3;
 use rand::{Rng, seq::SliceRandom};
 use unthbuf::{UnthBuf, aligned::AlignedLayout};
 
-fn rand_read(packed: &UnthBuf<AlignedLayout>, indices: &Vec<usize>, out: &mut Vec<usize>) {
+fn rand_read(packed: &UnthBuf<AlignedLayout>, indices: &Vec<usize>) {
     for i in indices.into_iter() {
-        out[*i] = packed.get(*i).unwrap();
+        let _ = packed.get(*i).unwrap();
     }
 }
 
-fn rand_write(packed: &mut UnthBuf<AlignedLayout>, indices: &Vec<usize>, input: &Vec<usize>) {
+fn rand_write(packed: &mut UnthBuf<AlignedLayout>, indices: &Vec<usize>) {
     for i in indices.into_iter() {
-        packed.set(*i, input[*i]).unwrap();
+        packed.set(*i, 0).unwrap();
     }
 }
 
@@ -27,18 +27,13 @@ fn read_benchmark<const BITSIZE: u32>(c: &mut Criterion) {
     // generate random indices
     let mut indices: Vec<usize> = (0..CHUNK_S3).collect();
     indices.shuffle(&mut rng);
-    // array for reading into
-    let mut values = vec![0; CHUNK_S3];
     c.bench_function(&format!("ub_rand_read-32^3-{}", BITSIZE), |b| b.iter(|| rand_read(
-        black_box(&packed), black_box(&indices), black_box(&mut values)
+        black_box(&packed), black_box(&indices)
     )));
 }
 
 fn write_benchmark<const BITSIZE: u32>(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
-    // generate a random array of values
-    let mut values = vec![0; CHUNK_S3];
-    values.fill_with(|| rng.gen_range(0..2_usize.pow(BITSIZE)));
     // generate random indices
     let mut indices: Vec<usize> = (0..CHUNK_S3).collect();
     indices.shuffle(&mut rng);
@@ -47,7 +42,7 @@ fn write_benchmark<const BITSIZE: u32>(c: &mut Criterion) {
         NonZeroU8::try_from(BITSIZE as u8).unwrap(), CHUNK_S3, 0
     );
     c.bench_function(&format!("ub_rand_write-32^3-{}", BITSIZE), |b| b.iter(|| rand_write(
-        black_box(&mut packed), black_box(&indices), black_box(&values)
+        black_box(&mut packed), black_box(&indices)
     )));
 }
 
