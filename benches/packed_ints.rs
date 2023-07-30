@@ -3,15 +3,15 @@ use chunky::{utils::{PackedUsizes, GetSet}, CHUNK_S3};
 use rand::{Rng, seq::SliceRandom};
 const N: usize = CHUNK_S3;
 
-fn rand_read(packed: &PackedUsizes, indices: &Vec<usize>, out: &mut Vec<usize>) {
+fn rand_read(packed: &PackedUsizes, indices: &Vec<usize>) {
     for i in indices.into_iter() {
-        out[*i] = packed.get(*i);
+        let _ = packed.get(*i);
     }
 }
 
-fn rand_write(packed: &mut PackedUsizes, indices: &Vec<usize>, input: &Vec<usize>) {
+fn rand_write(packed: &mut PackedUsizes, indices: &Vec<usize>) {
     for i in indices.into_iter() {
-        packed.set(*i, input[*i]);
+        packed.set(*i, 0);
     }
 }
 
@@ -24,25 +24,20 @@ fn read_benchmark<const BITSIZE: u32>(c: &mut Criterion) {
     // generate random indices
     let mut indices: Vec<usize> = (0..N).collect();
     indices.shuffle(&mut rng);
-    // array for reading into
-    let mut values = vec![0; N];
     c.bench_function(&format!("pi_rand_read-32^3-{}", BITSIZE), |b| b.iter(|| rand_read(
-        black_box(&packed), black_box(&indices), black_box(&mut values)
+        black_box(&packed), black_box(&indices)
     )));
 }
 
 fn write_benchmark<const BITSIZE: u32>(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
-    // generate a random array of values
-    let mut values = vec![0; N];
-    values.fill_with(|| rng.gen_range(0..2_usize.pow(BITSIZE)));
     // generate random indices
     let mut indices: Vec<usize> = (0..N).collect();
     indices.shuffle(&mut rng);
     // packed array to write to
     let mut packed = PackedUsizes::filled(N, BITSIZE, 0);
     c.bench_function(&format!("pi_rand_write-32^3-{}", BITSIZE), |b| b.iter(|| rand_write(
-        black_box(&mut packed), black_box(&indices), black_box(&values)
+        black_box(&mut packed), black_box(&indices)
     )));
 }
 

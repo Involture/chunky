@@ -1,5 +1,6 @@
 use crate::blocs::CHUNK_S3;
-
+const U4_IN_USIZE: usize = usize::BITS as usize/4;
+const PARITY_MASK: usize = U4_IN_USIZE - 1;
 pub trait PackedData {
     fn max(&self) -> usize;
 
@@ -8,7 +9,7 @@ pub trait PackedData {
     fn set(&mut self, i: usize, value: usize);
 }
 
-pub struct ArrU4([u8; CHUNK_S3/2]);
+pub struct ArrU4([usize; CHUNK_S3/U4_IN_USIZE]);
 
 
 impl PackedData for ArrU4 {
@@ -16,17 +17,20 @@ impl PackedData for ArrU4 {
         1 << 4
     }
 
+    #[inline(always)]
     fn get(&self, i: usize) -> usize {
-        let shift = 4 * (i&1);
+        let shift = 4 * (i&PARITY_MASK);
         let mask = 0b1111 << shift;
-        ((self.0[i >> 1] & mask) >> shift) as usize
+        ((self.0[i/U4_IN_USIZE] & mask) >> shift) as usize
     }
 
+    #[inline(always)]
     fn set(&mut self, i: usize, value: usize) {
-        let shift: usize = 4 * (i&1);
+        let shift: usize = 4 * (i&PARITY_MASK);
         let mask = 0b1111 << shift;
-        let i = i >> 1;
-        self.0[i] = self.0[i] & !mask | ((value as u8) << shift) & mask;
+        let i = i/U4_IN_USIZE;
+        self.0[i] &= !mask;
+        self.0[i] |= (value as usize) << shift;
     }
 }
 
@@ -78,7 +82,7 @@ pub struct DenseArray {
 
 impl DenseArray {
     pub fn new() -> Self {
-        DenseArray { data: Box::new(ArrU4([0; CHUNK_S3/2])) }
+        DenseArray { data: Box::new(ArrU4([0; CHUNK_S3/U4_IN_USIZE])) }
     }
 
     pub fn from(values: &[usize]) -> Self {
