@@ -11,6 +11,7 @@ bevy = ["dep:bevy"]
 bevy = { version = "0.11", optional = true }
 intbits = "*"
 itertools = "*"
+unthbuf = "1.0"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -26,4 +27,8 @@ harness = false
 
 [[bench]]
 name = "control_vec"
+harness = false
+
+[[bench]]
+name = "unthbuf"
 harness = false
